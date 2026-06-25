@@ -1,3 +1,4 @@
+import math
 import time
 import requests
 from luma.core.interface.serial import i2c
@@ -77,13 +78,13 @@ def update_display():
                 draw.text((LEFT_MARGIN, y_offset), "No departures", fill="white", font=font)
             else:
                 for dest, t_left in train_data:
-                    time_px = int(font.getlength(t_left))
-                    time_x = 128 - RIGHT_MARGIN - time_px  # pin time to right edge
-                    # Grow dots until the next dot would touch or pass time_x
-                    num_dots = 0
-                    while LEFT_MARGIN + font.getlength(dest + "." * (num_dots + 1)) < time_x:
-                        num_dots += 1
-                    num_dots = max(1, num_dots)
+                    time_w = math.ceil(font.getlength(t_left))
+                    time_x = 128 - RIGHT_MARGIN - time_w
+                    dest_w = math.ceil(font.getlength(dest))
+                    dot_w = math.ceil(font.getlength("."))
+                    # Leave a 2px safety gap before the time text
+                    available = time_x - LEFT_MARGIN - dest_w - 2
+                    num_dots = max(1, available // dot_w)
                     draw.text((LEFT_MARGIN, y_offset), f"{dest}{'.' * num_dots}", fill="white", font=font)
                     draw.text((time_x, y_offset), t_left, fill="white", font=font)
                     y_offset += 15
