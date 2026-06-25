@@ -49,26 +49,41 @@ def get_timetable():
             return _timetable_cache  # keep stale cache on error
         data = response.json()
 
-        # Build a map of stopId -> friendly name from the stops list
-        stops = {s["id"]: clean_destination(s.get("name", ""))
-                 for s in data.get("stops", [])}
+        # Build stopId -> friendly name map (top-level key is "stations", not "stops")
+        stops = {}
+        for s in data.get("stations", []):
+            name = clean_destination(s.get("name", ""))
+            # Entries may use "id", "stationId", or both — index both
+            for key in ("id", "stationId"):
+                if s.get(key):
+                    stops[s[key]] = name
 
         departures = []
         routes = data.get("timetable", {}).get("routes", [])
         for route in routes:
-            # Map intervalId -> final destination (last stop in that interval sequence)
+            # stationIntervals[].id is a STRING ("0","1"…); knownJourneys[].intervalId is an INT
+            # Normalise to string keys so lookups always match
             interval_dest = {}
             for interval in route.get("stationIntervals", []):
                 int_stops = interval.get("intervals", [])
                 if int_stops:
                     last_id = int_stops[-1].get("stopId", "")
-                    interval_dest[interval["id"]] = stops.get(last_id, "")
+                    interval_dest[str(interval["id"])] = stops.get(last_id, "")
 
+            today_name = now.strftime("%A")  # e.g. "Wednesday"
             for schedule in route.get("schedules", []):
+                sched_name = schedule.get("name", "")
+                # Only use today's schedule (Monday-Thursday, Friday, Saturday, Sunday)
+                if today_name not in sched_name and not (
+                    today_name in ("Monday", "Tuesday", "Wednesday", "Thursday")
+                    and "Monday" in sched_name
+                ):
+                    continue
                 for journey in schedule.get("knownJourneys", []):
-                    hour = int(journey.get("hour", 0))
+                    hour = int(journey.get("hour", 0)) % 24  # handle hour=24
                     minute = int(journey.get("minute", 0))
-                    dest = interval_dest.get(journey.get("intervalId", 0), "")
+                    interval_id = str(journey.get("intervalId", 0))  # cast to string
+                    dest = interval_dest.get(interval_id, "")
                     dep_time = now.replace(hour=hour, minute=minute, second=0, microsecond=0)
                     departures.append((dep_time, dest))
 
