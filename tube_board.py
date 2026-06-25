@@ -64,31 +64,27 @@ def update_display():
         
         with canvas(device) as draw:
             # 1. Top Border/Header Area
-            draw.text((2, 0), "METROPOLITAN DEPARTS", fill="white", font=font)
+            draw.text((2, 0), "METROPOLITAN", fill="white", font=font)
             draw.line((0, 14, 128, 14), fill="white")
             
-            # 2. Main Body with dynamic dot calculations
+            # 2. Main Body — pixel-accurate dot padding so time aligns to the right edge
+            LEFT_MARGIN = 2
+            RIGHT_MARGIN = 2
+            USABLE_WIDTH = 128 - LEFT_MARGIN - RIGHT_MARGIN
+
             y_offset = 18
             if not train_data:
-                draw.text((2, y_offset), "No departures", fill="white", font=font)
+                draw.text((LEFT_MARGIN, y_offset), "No departures", fill="white", font=font)
             else:
+                dot_width = font.getlength(".")
                 for dest, t_left in train_data:
-                    # Target total characters per line to fill a 128px width using this font size
-                    # For DejaVuSansMono at 11pt, roughly 19-21 characters fit the screen width.
-                    max_chars = 20 
-                    
-                    # Calculate how many dots we need to pad the middle
-                    dots_needed = max_chars - (len(dest) + len(t_left))
-                    if dots_needed < 1:
-                        dots_needed = 1
-                    
-                    # Combine them into a single edge-to-edge string
-                    full_line_str = f"{dest}{'.' * dots_needed}{t_left}"
-                    
-                    # Draw the completed full-width line
-                    draw.text((2, y_offset), full_line_str, fill="white", font=font)
-                    
-                    # Move down to the next train slot
+                    dest_px = font.getlength(dest)
+                    time_px = font.getlength(t_left)
+                    # Fill the remaining space between dest and time with dots
+                    dots_px = USABLE_WIDTH - dest_px - time_px
+                    num_dots = max(1, int(dots_px / dot_width))
+                    full_line_str = f"{dest}{'.' * num_dots}{t_left}"
+                    draw.text((LEFT_MARGIN, y_offset), full_line_str, fill="white", font=font)
                     y_offset += 15
                     
         time.sleep(60)
