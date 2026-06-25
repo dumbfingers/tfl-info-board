@@ -79,7 +79,7 @@ def update_display():
                 for dest, t_left in train_data:
                     time_px = int(font.getlength(t_left))
                     time_x = 128 - RIGHT_MARGIN - time_px  # pin time to right edge
-                    dot_w = int(font.getlength("."))
+                    dot_w = max(1, round(font.getlength(".")))
                     dest_end_x = LEFT_MARGIN + int(font.getlength(dest))
                     # Fill the gap between dest and time with dots
                     num_dots = max(1, (time_x - dest_end_x) // dot_w)
