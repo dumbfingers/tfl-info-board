@@ -77,12 +77,14 @@ def update_display():
                 draw.text((LEFT_MARGIN, y_offset), "No departures", fill="white", font=font)
             else:
                 for dest, t_left in train_data:
-                    # Add dots one at a time until the next dot would overflow the screen
-                    dots = "."
-                    while font.getlength(f"{dest}{dots}.{t_left}") <= USABLE_WIDTH:
-                        dots += "."
-                    full_line_str = f"{dest}{dots}{t_left}"
-                    draw.text((LEFT_MARGIN, y_offset), full_line_str, fill="white", font=font)
+                    time_px = int(font.getlength(t_left))
+                    time_x = 128 - RIGHT_MARGIN - time_px  # pin time to right edge
+                    dot_w = int(font.getlength("."))
+                    dest_end_x = LEFT_MARGIN + int(font.getlength(dest))
+                    # Fill the gap between dest and time with dots
+                    num_dots = max(1, (time_x - dest_end_x) // dot_w)
+                    draw.text((LEFT_MARGIN, y_offset), f"{dest}{'.' * num_dots}", fill="white", font=font)
+                    draw.text((time_x, y_offset), t_left, fill="white", font=font)
                     y_offset += 15
                     
         time.sleep(60)
